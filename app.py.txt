@@ -1,0 +1,547 @@
+import os
+import random
+from flask import Flask, redirect, request, render_template, session, jsonify
+import requests
+from database import (
+    db, User, Unit, Call, Citizen, Vehicle, Fine, Investigation,
+    Report, Equipment, Camera, CameraSighting, Company, TowCall,
+    CourtCase, HRApplication, RadioMessage, AuditLog
+)
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "fin-cad-2-turvallinen-avain")
+
+database_url = os.environ.get("DATABASE_URL", "sqlite:///fin_cad.db")
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+
+CLIENT_ID = os.environ.get("ROBLOX_CLIENT_ID", "3416206282321757507")
+CLIENT_SECRET = os.environ.get("ROBLOX_CLIENT_SECRET", "ASETA_UUSI_SECRET_YMPARISTOMUUTTUJAAN")
+BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:5000")
+REDIRECT_URI = f"{BASE_URL}/auth/roblox/callback"
+
+ERLC_API_KEY = os.environ.get("ERLC_SERVER_KEY", "")
+ERLC_API_BASE = "https://policeroleplay.community"
+
+def log_action(username, action):
+    db.session.add(AuditLog(username=username, action=action))
+    db.session.commit()
+
+with app.app_context():
+    db.create_all()
+    if Citizen.query.count() == 0:
+        db.session.add(Citizen(full_name="Matti Meikäläinen", dob="12.05.1995", roblox_user="MattiRP", address="Hallituskatu 4, Tornio"))
+        db.session.add(Vehicle(plate="FIN-112", model="Skoda Octavia", color="Sinivalkoinen", owner_name="Poliisilaitos"))
+        db.session.add(Camera(cam_code="CAM-01", name="Tornio Keskusta Risteys", area="Keskusta", pos_x=42.0, pos_y=38.0))
+        db.session.add(Camera(cam_code="CAM-02", name="Valtatie 29 Pohjoinen", area="Valtatie", pos_x=68.0, pos_y=55.0))
+        db.session.add(Equipment(name="Sammutusauto FIN-11", category="Pelastusajoneuvot", condition="Käyttökunnossa", assigned_unit="Tornio 11"))
+        db.session.commit()
+
+@app.route("/")
+def index():
+    if "user_id" in session:
+        user = User.query.get(session["user_id"])
+        if user:
+            return render_template("dashboard.html", user=user)
+    return render_template("login.html")
+
+@app.route("/auth/roblox")
+def roblox_login():
+    roblox_auth_url = f"https://roblox.com{CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=openid+profile"
+    return redirect(roblox_auth_url)
+
+@app.route("/auth/roblox/callback")
+def roblox_callback():
+    code = request.args.get("code")
+    if not code:
+        return "Virhe: Kirjautumiskoodia ei löytynyt.", 400
+
+    payload = {
+        "grant_type": "authorization_code",
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "code": code,
+        "redirect_uri": REDIRECT_URI
+    }
+    response = requests.post("https://roblox.com", data=payload, headers={"Content-Type": "application/x-www-form-urlencoded"})
+    if response.status_code != 200:
+        return f"Virhe tokenin haussa: {response.text}", 400
+
+    access_token = response.json().get("access_token")
+    user_response = requests.get("https://roblox.com", headers={"Authorization": f"Bearer {access_token}"})
+    if user_response.status_code != 200:
+        return "Virhe käyttäjätietojen haussa.", 400
+
+    user_info = user_response.json()
+    roblox_id = str(user_info.get("sub"))
+    username = user_info.get("preferred_username", "Käyttäjä")
+
+    user = User.query.filter_by(roblox_id=roblox_id).first()
+    if not user:
+        is_first = User.query.count() == 0
+        user = User(
+            roblox_id=roblox_id,
+            username=username,
+            role="Omistaja" if is_first else "Poliisi",
+            department="Ylläpito" if is_first else "Poliisi",
+            rank="Päällikkö" if is_first else "Vanhempi konstaapeli"
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    session["user_id"] = user.id
+    session["username"] = user.username
+    log_action(user.username, "Kirjautui sisään Fin CAD -järjestelmään")
+    return redirect("/")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+# --- HÄTÄKESKUS & YKSIKÖT ---
+@app.route("/api/calls", methods=["GET", "POST"])
+def handle_calls():
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    if request.method == "POST":
+        data = request.json
+        call_num = f"112-{random.randint(1000, 9999)}"
+        db.session.add(Call(
+            call_number=call_num,
+            caller=data.get("caller", session["username"]),
+            location=data.get("location", "Tuntematon"),
+            call_type=data.get("call_type", "Yleinen tehtävä"),
+            priority=data.get("priority", "Kiireellinen (A)"),
+            description=data.get("description", "")
+        ))
+        db.session.commit()
+        log_action(session["username"], f"Loi hätäkeskustehtävän {call_num}")
+        return jsonify({"status": "ok"})
+
+    calls = Call.query.filter(Call.status != "Suljettu").order_by(Call.id.desc()).all()
+    return jsonify([{
+        "id": c.id, "call_number": c.call_number, "caller": c.caller,
+        "location": c.location, "call_type": c.call_type,
+        "priority": c.priority, "description": c.description, "status": c.status
+    } for c in calls])
+
+@app.route("/api/calls/<int:call_id>/close", methods=["POST"])
+def close_call(call_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    call = Call.query.get_or_404(call_id)
+    call.status = "Suljettu"
+    db.session.commit()
+    log_action(session["username"], f"Päätti tehtävän {call.call_number}")
+    return jsonify({"status": "closed"})
+
+@app.route("/api/units", methods=["GET", "POST"])
+def handle_units():
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    if request.method == "POST":
+        data = request.json
+        db.session.add(Unit(
+            callsign=data.get("callsign"),
+            department=data.get("department", "Poliisi"),
+            personnel=data.get("personnel"),
+            vehicle=data.get("vehicle", "Partioauto")
+        ))
+        db.session.commit()
+        return jsonify({"status": "ok"})
+
+    units = Unit.query.all()
+    return jsonify([{
+        "id": u.id, "callsign": u.callsign, "department": u.department,
+        "personnel": u.personnel, "vehicle": u.vehicle, "status": u.status
+    } for u in units])
+
+@app.route("/api/units/<int:unit_id>/status", methods=["POST"])
+def update_unit_status(unit_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    unit = Unit.query.get_or_404(unit_id)
+    unit.status = request.json.get("status", unit.status)
+    db.session.commit()
+    return jsonify({"status": "updated"})
+
+# --- POLIISIN MDT ---
+@app.route("/api/mdt/citizens", methods=["GET", "POST"])
+def handle_citizens():
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    if request.method == "POST":
+        data = request.json
+        db.session.add(Citizen(
+            full_name=data.get("full_name"),
+            dob=data.get("dob"),
+            roblox_user=data.get("roblox_user", ""),
+            address=data.get("address", "Tornio")
+        ))
+        db.session.commit()
+        return jsonify({"status": "ok"})
+
+    q = request.args.get("q", "")
+    citizens = Citizen.query.filter(Citizen.full_name.ilike(f"%{q}%")).all()
+    return jsonify([{
+        "id": c.id, "full_name": c.full_name, "dob": c.dob,
+        "roblox_user": c.roblox_user, "address": c.address,
+        "license_status": c.license_status, "wanted": c.wanted
+    } for c in citizens])
+
+@app.route("/api/mdt/citizens/<int:cit_id>/toggle_wanted", methods=["POST"])
+def toggle_wanted(cit_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    cit = Citizen.query.get_or_404(cit_id)
+    cit.wanted = not cit.wanted
+    db.session.commit()
+    log_action(session["username"], f"Muutti etsintäkuulutustilaa: {cit.full_name}")
+    return jsonify({"status": "ok"})
+
+@app.route("/api/mdt/citizens/<int:cit_id>/revoke_license", methods=["POST"])
+def revoke_license(cit_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    cit = Citizen.query.get_or_404(cit_id)
+    cit.license_status = "Ajokielto" if cit.license_status != "Ajokielto" else "Voimassa (B)"
+    db.session.commit()
+    log_action(session["username"], f"Päivitti ajokorttitilaa: {cit.full_name} -> {cit.license_status}")
+    return jsonify({"status": "ok"})
+
+@app.route("/api/mdt/vehicles", methods=["GET", "POST"])
+def handle_vehicles():
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    if request.method == "POST":
+        data = request.json
+        db.session.add(Vehicle(
+            plate=data.get("plate").upper(),
+            model=data.get("model"),
+            color=data.get("color"),
+            owner_name=data.get("owner_name")
+        ))
+        db.session.commit()
+        return jsonify({"status": "ok"})
+
+    q = request.args.get("q", "")
+    vehicles = Vehicle.query.filter(Vehicle.plate.ilike(f"%{q}%")).all()
+    return jsonify([{
+        "id": v.id, "plate": v.plate, "model": v.model,
+        "color": v.color, "owner_name": v.owner_name,
+        "inspected": v.inspected, "insured": v.insured
+    } for v in vehicles])
+
+@app.route("/api/mdt/fines", methods=["GET", "POST"])
+def handle_fines():
+    if "user_id" not in session:
+        return jsonify({"error": "Ei oikeutta"}), 401
+    if request.method == "POST":
+        data = request.json
+        f_num = f"SAK-{random.randint(1000, 9999)}"
+        db.session.add(Fine(
+            fine_number=f_num,
+            citizen_name=data.get("citizen_name"),
+            reason=data.get("reason"),
+amount=float(data.get("amount", 100)),
+issued_by=session["username"]
+))
+db.session.commit()
+log_action(session["username"], f"Kirjoitti sakon {f_num} henkilölle {data.get('citizen_name')}")
+return jsonify({"status": "ok"})
+fines = Fine.query.order_by(Fine.id.desc()).limit(25).all()
+return jsonify([{
+"id": f.id, "fine_number": f.fine_number, "citizen_name": f.citizen_name,
+"reason": f.reason, "amount": f.amount, "paid": f.paid, "issued_by": f.issued_by
+} for f in fines])
+@app.route("/api/mdt/investigations", methods=["GET", "POST"])
+def handle_investigations():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+c_num = f"TUTK-{random.randint(1000, 9999)}"
+db.session.add(Investigation(
+case_number=c_num,
+title=data.get("title"),
+suspect=data.get("suspect"),
+details=data.get("details"),
+lead_officer=session["username"]
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+cases = Investigation.query.order_by(Investigation.id.desc()).all()
+return jsonify([{
+"id": c.id, "case_number": c.case_number, "title": c.title,
+"suspect": c.suspect, "status": c.status, "details": c.details,
+"lead_officer": c.lead_officer
+} for c in cases])
+
+--- PELASTUS, ENSIHOITO, KALUSTO & RAPORTIT ---
+
+@app.route("/api/reports", methods=["GET", "POST"])
+def handle_reports():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+rep_num = f"RAP-{random.randint(10000, 99999)}"
+db.session.add(Report(
+report_number=rep_num,
+department=data.get("department", "Ensihoito"),
+report_type=data.get("report_type", "Ensihoitoraportti"),
+subject_name=data.get("subject_name", "Tuntematon"),
+location=data.get("location", "Tornio"),
+content=data.get("content", ""),
+author=session["username"]
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+reports = Report.query.order_by(Report.id.desc()).limit(30).all()
+return jsonify([{
+"id": r.id, "report_number": r.report_number, "department": r.department,
+"report_type": r.report_type, "subject_name": r.subject_name,
+"location": r.location, "content": r.content, "author": r.author,
+"created_at": r.created_at.strftime("%d.%m.%Y %H:%M")
+} for r in reports])
+@app.route("/api/equipment", methods=["GET", "POST"])
+def handle_equipment():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+db.session.add(Equipment(
+name=data.get("name"),
+category=data.get("category"),
+condition=data.get("condition", "Käyttökunnossa"),
+assigned_unit=data.get("assigned_unit", "Asema 1")
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+items = Equipment.query.all()
+return jsonify([{
+"id": i.id, "name": i.name, "category": i.category,
+"condition": i.condition, "assigned_unit": i.assigned_unit
+} for i in items])
+
+--- KARTTA & VALVONTAKAMERAT ---
+
+@app.route("/api/cameras", methods=["GET", "POST"])
+def handle_cameras():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+user = User.query.get(session["user_id"])
+if user.role not in ["Omistaja", "Ylläpito"]:
+return jsonify({"error": "Vain omistaja ja ylläpito voivat lisätä kameroita"}), 403
+data = request.json
+db.session.add(Camera(
+cam_code=f"CAM-{random.randint(10, 99)}",
+name=data.get("name"),
+area=data.get("area", "Tornio"),
+pos_x=float(data.get("pos_x", 50)),
+pos_y=float(data.get("pos_y", 50))
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+cams = Camera.query.all()
+return jsonify([{
+"id": c.id, "cam_code": c.cam_code, "name": c.name,
+"area": c.area, "pos_x": c.pos_x, "pos_y": c.pos_y
+} for c in cams])
+@app.route("/api/cameras/sightings", methods=["GET", "POST"])
+def handle_sightings():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+db.session.add(CameraSighting(
+camera_id=int(data.get("camera_id")),
+person_name=data.get("person_name", ""),
+vehicle_plate=data.get("vehicle_plate", "").upper(),
+notes=data.get("notes", ""),
+recorded_by=session["username"]
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+sightings = CameraSighting.query.order_by(CameraSighting.id.desc()).limit(25).all()
+results = []
+for s in sightings:
+cam = Camera.query.get(s.camera_id)
+results.append({
+"id": s.id, "camera_name": cam.name if cam else "Poistettu kamera",
+"person_name": s.person_name, "vehicle_plate": s.vehicle_plate,
+"notes": s.notes, "recorded_by": s.recorded_by,
+"timestamp": s.timestamp.strftime("%d.%m.%Y %H:%M")
+})
+return jsonify(results)
+
+--- TALOUS, YRITYKSET & HINAUS ---
+
+@app.route("/api/companies", methods=["GET", "POST"])
+def handle_companies():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+db.session.add(Company(
+name=data.get("name"),
+industry=data.get("industry"),
+owner=session["username"]
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+comps = Company.query.all()
+return jsonify([{"id": c.id, "name": c.name, "industry": c.industry, "owner": c.owner, "balance": c.balance} for c in comps])
+@app.route("/api/tow", methods=["GET", "POST"])
+def handle_tow():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+db.session.add(TowCall(
+plate=data.get("plate").upper(),
+pickup=data.get("pickup"),
+destination=data.get("destination", "Varikko")
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+tows = TowCall.query.order_by(TowCall.id.desc()).all()
+return jsonify([{"id": t.id, "plate": t.plate, "pickup": t.pickup, "destination": t.destination, "status": t.status} for t in tows])
+
+--- OIKEUSJÄRJESTELMÄ ---
+
+@app.route("/api/court", methods=["GET", "POST"])
+def handle_court():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+db.session.add(CourtCase(
+docket_number=f"OIK-{random.randint(1000, 9999)}",
+defendant=data.get("defendant"),
+charges=data.get("charges"),
+verdict=data.get("verdict", "Käsittelyssä"),
+sentence=data.get("sentence", "-")
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+cases = CourtCase.query.order_by(CourtCase.id.desc()).all()
+return jsonify([{
+"id": c.id, "docket_number": c.docket_number, "defendant": c.defendant,
+"charges": c.charges, "verdict": c.verdict, "sentence": c.sentence
+} for c in cases])
+
+--- HENKILÖSTÖHALLINTO (HR) ---
+
+@app.route("/api/hr/applications", methods=["GET", "POST"])
+def handle_hr():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+db.session.add(HRApplication(
+applicant=session["username"],
+app_type=data.get("app_type"),
+department=data.get("department"),
+details=data.get("details")
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+apps = HRApplication.query.order_by(HRApplication.id.desc()).all()
+return jsonify([{
+"id": a.id, "applicant": a.applicant, "app_type": a.app_type,
+"department": a.department, "details": a.details, "status": a.status
+} for a in apps])
+@app.route("/api/hr/applications/int:app_id/string:decision", methods=["POST"])
+def decide_hr(app_id, decision):
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+item = HRApplication.query.get_or_404(app_id)
+item.status = "Hyväksytty" if decision == "approve" else "Hylätty"
+db.session.commit()
+return jsonify({"status": "ok"})
+
+--- VIRANOMAISRADIO ---
+
+@app.route("/api/radio", methods=["GET", "POST"])
+def handle_radio():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+data = request.json
+db.session.add(RadioMessage(
+channel=data.get("channel", "Yhteinen viranomaiskanava"),
+sender=session["username"],
+message=data.get("message")
+))
+db.session.commit()
+return jsonify({"status": "ok"})
+msgs = RadioMessage.query.order_by(RadioMessage.id.desc()).limit(30).all()
+return jsonify([{
+"channel": m.channel, "sender": m.sender, "message": m.message,
+"timestamp": m.timestamp.strftime("%H:%M:%S")
+} for m in reversed(msgs)])
+
+--- YHTEISHAKU & YLLÄPITO & ER:LC API ---
+
+@app.route("/api/search")
+def global_search():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+q = request.args.get("q", "").strip()
+if not q:
+return jsonify([])
+results = []
+for c in Citizen.query.filter(Citizen.full_name.ilike(f"%{q}%")).all():
+results.append({"type": "Henkilö", "title": c.full_name, "info": f"Synt. {c.dob} | Ajokortti: {c.license_status}"})
+for v in Vehicle.query.filter(Vehicle.plate.ilike(f"%{q}%")).all():
+results.append({"type": "Ajoneuvo", "title": v.plate, "info": f"{v.model} ({v.color}) | Omistaja: {v.owner_name}"})
+for r in Report.query.filter(Report.report_number.ilike(f"%{q}%") | Report.subject_name.ilike(f"%{q}%")).all():
+results.append({"type": "Raportti", "title": r.report_number, "info": f"{r.report_type} – {r.subject_name}"})
+return jsonify(results)
+@app.route("/api/admin/users", methods=["GET", "POST"])
+def manage_users():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if request.method == "POST":
+current = User.query.get(session["user_id"])
+if current.role not in ["Omistaja", "Ylläpito"]:
+return jsonify({"error": "Ei oikeutta"}), 403
+data = request.json
+target = User.query.get(int(data.get("user_id")))
+if target:
+target.role = data.get("role", target.role)
+target.department = data.get("department", target.department)
+db.session.commit()
+log_action(session["username"], f"Muutti käyttäjän {target.username} rooliksi {target.role}")
+return jsonify({"status": "ok"})
+users = User.query.all()
+return jsonify([{"id": u.id, "username": u.username, "role": u.role, "department": u.department} for u in users])
+@app.route("/api/integrations/erlc/status")
+def erlc_status():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+if not ERLC_API_KEY:
+return jsonify({"connected": False, "message": "ERLC_SERVER_KEY -ympäristömuuttujaa ei ole asetettu palvelimelle."})
+try:
+res = requests.get(f"{ERLC_API_BASE}/server", headers={"Server-Key": ERLC_API_KEY}, timeout=5)
+if res.status_code == 200:
+return jsonify({"connected": True, "server_data": res.json()})
+return jsonify({"connected": False, "message": f"ER:LC API virhekoodi: {res.status_code}"})
+except Exception as e:
+return jsonify({"connected": False, "message": f"Yhteysvirhe: {str(e)}"})
+@app.route("/api/admin/logs")
+def admin_logs():
+if "user_id" not in session:
+return jsonify({"error": "Ei oikeutta"}), 401
+logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(30).all()
+return jsonify([{"username": l.username, "action": l.action, "timestamp": l.timestamp.strftime("%d.%m.%Y %H:%M:%S")} for l in logs])
+if name == "main":
+port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port)
