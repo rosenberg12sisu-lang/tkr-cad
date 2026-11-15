@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tornio Keminmaa RP – CAD 2.0</title>
+    <style>
+        :root { --bg: #0f172a; --panel: #1e293b; --text: #f8fafc; --accent: #3b82f6; --danger: #ef4444; --success: #22c55e; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+        #login-screen { display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .login-box { background: var(--panel); padding: 40px; border-radius: 12px; width: 340px; text-align: center; border: 1px solid #334155; }
+        .app-container { display: none; min-height: 100vh; }
+        .sidebar { width: 250px; background: #020617; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; border-right: 1px solid #1e293b; }
+        .nav-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 20px; }
+        .nav-btn { background: transparent; border: none; color: #cbd5e1; padding: 11px; text-align: left; border-radius: 6px; cursor: pointer; font-size: 0.95rem; }
+        .nav-btn:hover, .nav-btn.active { background: var(--accent); color: white; font-weight: bold; }
+        .main-content { flex: 1; padding: 25px; overflow-y: auto; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
+        .tab-section { display: none; }
+        .tab-section.active { display: block; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .panel { background: var(--panel); padding: 20px; border-radius: 8px; border: 1px solid #334155; }
+        .panel h3 { margin-top: 0; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        .form-stack { display: flex; flex-direction: column; gap: 10px; }
+        input, select, textarea { padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; width: 100%; box-sizing: border-box; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-primary { background: var(--accent); }
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        .mt-10 { margin-top: 10px; } .mt-20 { margin-top: 20px; }
+        .list-container { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+        .list-item { background: #0f172a; padding: 12px; border-radius: 6px; border-left: 4px solid var(--accent); font-size: 0.9rem; }
+        .map-box { position: relative; width: 100%; height: 320px; background: #0f172a; border: 2px dashed #475569; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: crosshair; }
+        .map-pin { position: absolute; width: 14px; height: 14px; background: var(--danger); border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); }
+    </style>
+</head>
+<body>
+    <div id="login-screen">
+        <div class="login-box">
+            <h2 style="color:var(--accent); margin-top:0;">TKR CAD 2.0</h2>
+            <p style="color:#94a3b8; font-size:0.9rem;">Tornio & Keminmaa RP Viranomaisjärjestelmä</p>
+            <form id="login-form" class="form-stack mt-20">
+                <input type="text" id="login-user" placeholder="Roblox-käyttäjänimi" required>
+                <select id="login-dept">
+                    <option value="Poliisi">Poliisi</option>
+                    <option value="Pelastuslaitos">Pelastuslaitos</option>
+                    <option value="Ensihoito">Ensihoito</option>
+                    <option value="Hätäkeskus">Hätäkeskus</option>
+                    <option value="Ylläpito">Ylläpito</option>
+                    <option value="Siviili">Siviili</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Kirjaudu sisään</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-screen">
+        <aside class="sidebar">
+            <div>
+                <h2 style="color:var(--accent); margin:0;">TKR CAD 2.0</h2>
+                <span style="font-size:0.8rem; color:#94a3b8;">ER:LC Viranomaisjärjestelmä</span>
+                <nav class="nav-menu">
+                    <button class="nav-btn active" onclick="switchTab('dispatch', this)">🚨 Hätäkeskus 112</button>
+                    <button class="nav-btn" onclick="switchTab('mdt', this)">🚓 Poliisin MDT</button>
+                    <button class="nav-btn" onclick="switchTab('ems', this)">🚒 Pelastus & Ensihoito</button>
+                    <button class="nav-btn" onclick="switchTab('map', this)">🗺️ Kartta & Kamerat</button>
+                    <button class="nav-btn" onclick="switchTab('radio', this)">📻 Viranomaisradio</button>
+                    <button class="nav-btn" onclick="switchTab('economy', this)">🏢 Yritykset & Hinaus</button>
+                    <button class="nav-btn" onclick="switchTab('court', this)">⚖️ Oikeusjärjestelmä</button>
+                    <button class="nav-btn" onclick="switchTab('hr', this)">📋 Henkilöstö & HR</button>
+                </nav>
+            </div>
+            <button onclick="logout()" class="btn btn-danger">Kirjaudu ulos</button>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <strong id="page-title" style="font-size:1.2rem;">🚨 Hätäkeskus 112</strong>
+                <div id="user-badge" style="background:#334155; padding:6px 12px; border-radius:6px; font-size:0.9rem;"></div>
+            </header>
+
+            <section id="tab-dispatch" class="tab-section active">
+                <div class="grid-2">
+                    <div class="panel">
+                        <h3>Luo uusi hätäilmoitus (112)</h3>
+                        <form id="call-form" class="form-stack">
+                            <input type="text" id="call-loc" placeholder="Tapahtumapaikka (esim. Tornio Keskusta)" required>
+                            <select id="call-type">
+                                <option>Liikenneonnettomuus</option><option>Häiriöilmoitus</option><option>Tulipalo</option><option>Ensihoitotehtävä</option><option>Ryöstö / Vakava rikos</option>
+                            </select>
+                            <select id="call-prio"><option>Kiireellinen (A)</option><option>Normaali (B)</option><option>Kiireetön (C)</option></select>
+                            <textarea id="call-desc" rows="2" placeholder="Tehtävän kuvaus..." required></textarea>
+                            <button type="submit" class="btn btn-danger">Lähetä hälytys</button>
+                        </form>
+                    </div>
+                    <div class="panel">
+                        <h3>Kirjaudu viranomaisyksiköksi</h3>
+                        <form id="unit-form" class="form-stack">
+                            <input type="text" id="unit-call" placeholder="Kutsumerkki (esim. Lappi 101)" required>
+                            <input type="text" id="unit-veh" placeholder="Ajoneuvo (esim. Skoda Octavia)" required>
+                            <button type="submit" class="btn btn-success">Aloita työvuoro (10-8)</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="grid-2 mt-20">
+                    <div class="panel"><h3>Aktiiviset tehtävät</h3><div id="calls-list" class="list-container"></div></div>
+                    <div class="panel"><h3>Yksiköt vuorossa</h3><div id="units-list" class="list-container"></div></div>
+                </div>
+            </section>
+
+            <section id="tab-mdt" class="tab-section">
+                <div class="grid-2">
+                    <div class="panel">
+                        <h3>Lisää henkilökortti (MDT)</h3>
+                        <form id="cit-form" class="form-stack">
+                            <input type="text" id="cit-name" placeholder="RP Etu- ja sukunimi" required>
+                            <input type="text" id="cit-dob" placeholder="Syntymäaika (pp.kk.vvvv)" required>
+                            <input type="text" id="cit-addr" placeholder="Osoite (esim. Keminmaa)" required>
+                            <button type="submit" class="btn btn-primary">Tallenna henkilö</button>
+                        </form>
+                        <div id="cit-list" class="list-container mt-10"></div>
+                    </div>
+                    <div class="panel">
+                        <h3>Rekisteröi ajoneuvo & Kirjaa sakko</h3>
+                        <form id="veh-form" class="form-stack">
+                            <input type="text" id="veh-plate" placeholder="Rekisteritunnus (esim. ABC-123)" required>
+                            <input type="text" id="veh-model" placeholder="Merkki, malli ja väri" required>
+                            <input type="text" id="veh-owner" placeholder="Omistajan RP-nimi" required>
+                            <button type="submit" class="btn btn-primary">Tallenna ajoneuvo</button>
+                        </form>
+                        <div id="veh-list" class="list-container mt-10"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-ems" class="tab-section">
+                <div class="panel">
+                    <h3>Pelastus- ja ensihoitoraportti</h3>
+                    <form id="ems-form" class="form-stack">
+                        <input type="text" id="ems-subj" placeholder="Potilaan nimi / Kohteen osoite" required>
+                        <textarea id="ems-notes" rows="3" placeholder="Toimenpiteet ja vammat..." required></textarea>
+                        <button type="submit" class="btn btn-primary">Tallenna raportti</button>
+                    </form>
+                    let currentUser = JSON.parse(localStorage.getItem('tkr_user'));
+if (currentUser) showApp();
+document.getElementById('login-form').onsubmit = (e) => {
+e.preventDefault();
+currentUser = { name: document.getElementById('login-user').value, dept: document.getElementById('login-dept').value };
+localStorage.setItem('tkr_user', JSON.stringify(currentUser));
+showApp();
+};
+function showApp() {
+document.getElementById('login-screen').style.display = 'none';
+document.getElementById('app-screen').style.display = 'flex';
+document.getElementById('user-badge').innerText = ${currentUser.dept} | ${currentUser.name};
+renderAll();
+}
+function logout() { localStorage.removeItem('tkr_user'); location.reload(); }
+function switchTab(id, btn) {
+document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+document.getElementById('tab-' + id).classList.add('active');
+btn.classList.add('active');
+document.getElementById('page-title').innerText = btn.innerText;
+}
+function saveAndRender(key, text, listId) {
+const items = JSON.parse(localStorage.getItem(key) || '[]');
+items.unshift(text);
+localStorage.setItem(key, JSON.stringify(items));
+renderList(key, listId);
+}
+function renderList(key, listId) {
+const items = JSON.parse(localStorage.getItem(key) || '[]');
+document.getElementById(listId).innerHTML = items.map(i => <div class="list-item">${i}</div>).join('');
+}
+function renderAll() {
+[['calls','calls-list'],['units','units-list'],['cits','cit-list'],['vehs','veh-list'],['ems','ems-list'],['radio','radio-list'],['tow','tow-list'],['court','court-list'],['hr','hr-list']].forEach(p => renderList(p[0], p[1]));
+}
+document.getElementById('call-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('calls', <strong>[${document.getElementById('call-prio').value}] ${document.getElementById('call-type').value}</strong> – ${document.getElementById('call-loc').value}<br><small>${document.getElementById('call-desc').value}</small>, 'calls-list'); e.target.reset(); };
+document.getElementById('unit-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('units', <strong>${document.getElementById('unit-call').value}</strong> (${currentUser.dept} / ${currentUser.name}) – ${document.getElementById('unit-veh').value} <span style="color:#22c55e;">[10-8]</span>, 'units-list'); e.target.reset(); };
+document.getElementById('cit-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('cits', <strong>${document.getElementById('cit-name').value}</strong> (${document.getElementById('cit-dob').value}) – ${document.getElementById('cit-addr').value}, 'cit-list'); e.target.reset(); };
+document.getElementById('veh-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('vehs', <strong>${document.getElementById('veh-plate').value.toUpperCase()}</strong> – ${document.getElementById('veh-model').value} (Omistaja: ${document.getElementById('veh-owner').value}), 'veh-list'); e.target.reset(); };
+document.getElementById('ems-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('ems', <strong>${document.getElementById('ems-subj').value}</strong> (${currentUser.name}): ${document.getElementById('ems-notes').value}, 'ems-list'); e.target.reset(); };
+document.getElementById('radio-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('radio', <strong>[${document.getElementById('radio-ch').value}] ${currentUser.name}:</strong> ${document.getElementById('radio-msg').value}, 'radio-list'); document.getElementById('radio-msg').value = ''; };
+document.getElementById('tow-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('tow', <strong>Hinaus:</strong> ${document.getElementById('tow-info').value}, 'tow-list'); e.target.reset(); };
+document.getElementById('court-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('court', <strong>Tuomio:</strong> ${document.getElementById('court-info').value}, 'court-list'); e.target.reset(); };
+document.getElementById('hr-form').onsubmit = (e) => { e.preventDefault(); saveAndRender('hr', <strong>${currentUser.name}:</strong> ${document.getElementById('hr-info').value}, 'hr-list'); e.target.reset(); };
+function addPin(e) {
+const rect = e.currentTarget.getBoundingClientRect();
+const pin = document.createElement('div');
+pin.className = 'map-pin';
+pin.style.left = ((e.clientX - rect.left) / rect.width * 100) + '%';
+pin.style.top = ((e.clientY - rect.top) / rect.height * 100) + '%';
+e.currentTarget.appendChild(pin);
+}
