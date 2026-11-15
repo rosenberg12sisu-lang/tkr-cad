@@ -1,0 +1,425 @@
+
+```css
+:root {
+    --bg-dark: #0b132b;
+    --bg-panel: #1c2541;
+    --bg-card: #253052;
+    --text-light: #f0f4f8;
+    --text-muted: #9fb3c8;
+    --accent-blue: #2b7fff;
+    --accent-red: #e63946;
+    --accent-yellow: #f4a261;
+    --accent-green: #2a9d8f;
+    --border-color: #33416b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: var(--bg-dark); color: var(--text-light); }
+
+/* Kirjautumissivu */
+.login-body { display: flex; justify-content: center; align-items: center; height: 100vh; }
+.login-card { background: var(--bg-panel); padding: 40px; border-radius: 10px; border: 1px solid var(--border-color); text-align: center; max-width: 420px; width: 90%; }
+.login-card h1 { margin: 15px 0 10px; font-size: 26px; }
+.login-card p { color: var(--text-muted); margin-bottom: 25px; font-size: 14px; }
+.badge { background: var(--accent-blue); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; letter-spacing: 1px; }
+
+/* Rakenne */
+.app-container { display: flex; min-height: 100vh; }
+.sidebar { width: 250px; background: var(--bg-panel); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; padding: 15px; }
+.sidebar-header h2 { color: var(--accent-blue); font-size: 20px; }
+.sidebar-header span { font-size: 11px; color: var(--text-muted); }
+.nav-menu { display: flex; flex-direction: column; gap: 5px; margin-top: 20px; flex-grow: 1; }
+.nav-btn { background: transparent; color: var(--text-light); border: none; padding: 10px 12px; text-align: left; border-radius: 6px; cursor: pointer; font-size: 13px; transition: 0.2s; }
+.nav-btn:hover, .nav-btn.active { background: var(--accent-blue); font-weight: bold; }
+
+.main-content { flex-grow: 1; display: flex; flex-direction: column; }
+.topbar { background: var(--bg-panel); padding: 12px 25px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.topbar-title { font-weight: bold; font-size: 17px; }
+.role-badge { background: var(--bg-card); padding: 4px 10px; border-radius: 5px; font-size: 12px; margin-right: 8px; border: 1px solid var(--border-color); }
+
+/* Yhteishaku */
+.global-search-box { position: relative; width: 320px; }
+.search-dropdown { position: absolute; top: 42px; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--accent-blue); border-radius: 6px; z-index: 100; max-height: 250px; overflow-y: auto; display: none; }
+.search-dropdown.open { display: block; }
+.search-item { padding: 8px 12px; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+
+/* Työskentelypaneelit */
+.tab-section { display: none; padding: 20px; }
+.tab-section.active { display: block; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.mt-10 { margin-top: 10px; }
+.mt-20 { margin-top: 20px; }
+
+.panel { background: var(--bg-panel); padding: 18px; border-radius: 8px; border: 1px solid var(--border-color); }
+.panel h3 { margin-bottom: 12px; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+
+/* Lomakkeet & Painikkeet */
+.form-stack { display: flex; flex-direction: column; gap: 8px; }
+input, select, textarea { background: var(--bg-dark); border: 1px solid var(--border-color); color: var(--text-light); padding: 9px; border-radius: 5px; font-size: 13px; width: 100%; }
+.btn { padding: 9px 14px; border: none; border-radius: 5px; color: white; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; font-size: 13px; }
+.btn-primary { background: var(--accent-blue); }
+.btn-danger { background: var(--accent-red); }
+.btn-success { background: var(--accent-green); }
+.btn-large { padding: 14px 24px; font-size: 16px; }
+.btn-full { width: 100%; }
+
+/* Listakortit */
+.list-container { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+.item-card { background: var(--bg-card); padding: 10px; border-radius: 6px; border-left: 4px solid var(--accent-blue); }
+.item-card.urgent { border-left-color: var(--accent-red); }
+.item-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 4px; }
+.item-meta { font-size: 12px; color: var(--text-muted); }
+
+/* Tilannekuvakartta */
+.map-board { position: relative; width: 100%; height: 280px; background: radial-gradient(circle at center, #1d2d50 0%, #0b132b 100%); border: 2px solid var(--accent-blue); border-radius: 8px; margin-top: 8px; cursor: crosshair; overflow: hidden; background-image: linear-gradient(to right, rgba(43, 127, 255, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(43, 127, 255, 0.1) 1px, transparent 1px); background-size: 30px 30px; }
+.map-grid-overlay { position: absolute; top: 8px; left: 10px; font-size: 11px; color: var(--text-muted); }
+.cam-pin { position: absolute; transform: translate(-50%, -50%); background: var(--accent-blue); color: white; padding: 3px 7px; border-radius: 10px; font-size: 11px; font-weight: bold; border: 1px solid white; }
+
+@media (max-width: 900px) {
+    .app-container { flex-direction: column; }
+    .sidebar { width: 100%; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .global-search-box { width: 100%; }
+}
+```
+
+---
+
+### 8. `static/app.js`
+Kopioi tämä `static/app.js`-tiedostoon:
+
+```javascript
+function switchTab(tabId, btnElement) {
+    document.querySelectorAll('.tab-section').forEach(sec => sec.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    btnElement.classList.add('active');
+    document.getElementById('page-title').innerText = btnElement.innerText;
+}
+
+// Yhteishaku
+async function runGlobalSearch() {
+    const q = document.getElementById('global-search-input').value.trim();
+    const box = document.getElementById('global-search-results');
+    if (!q) { box.classList.remove('open'); return; }
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    box.innerHTML = data.length ? data.map(i => `<div class="search-item"><strong>[${i.type}] ${i.title}</strong><div class="item-meta">${i.info}</div></div>`).join('') : '<div class="search-item">Ei tuloksia.</div>';
+    box.classList.add('open');
+}
+
+// 1. Hätäkeskus & Yksiköt
+async function loadCalls() {
+    const res = await fetch('/api/calls');
+    if (!res.ok) return;
+    const calls = await res.json();
+    document.getElementById('calls-list').innerHTML = calls.length ? calls.map(c => `
+        <div class="item-card urgent">
+            <div class="item-header"><span>[${c.call_number}] ${c.call_type} – ${c.location}</span><button class="btn btn-danger" style="padding:2px 8px;" onclick="closeCall(${c.id})">Päätä</button></div>
+            <div class="item-meta">Kiireellisyys: ${c.priority} | Ilmoittaja: ${c.caller}</div>
+            <p style="font-size:13px; margin-top:4px;">${c.description}</p>
+        </div>
+    `).join('') : '<p class="item-meta">Ei aktiivisia tehtäviä.</p>';
+}
+
+document.getElementById('call-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await fetch('/api/calls', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            location: document.getElementById('call-location').value,
+            call_type: document.getElementById('call-type').value,
+            priority: document.getElementById('call-priority').value,
+            description: document.getElementById('call-desc').value
+        })
+    });
+    e.target.reset(); loadCalls();
+});
+
+async function closeCall(id) { await fetch(`/api/calls/${id}/close`, { method: 'POST' }); loadCalls(); }
+
+async function loadUnits() {
+    const res = await fetch('/api/units');
+    if (!res.ok) return;
+    const units = await res.json();
+    document.getElementById('units-list').innerHTML = units.length ? units.map(u => `
+        <div class="item-card">
+            <div class="item-header">
+                <span>${u.callsign} (${u.department})</span>
+                <select onchange="changeUnitStatus(${u.id}, this.value)" style="width:auto; padding:2px;">
+                    <option ${u.status.includes('10-8') ? 'selected' : ''}>10-8: Vapaana</option>
+                    <option ${u.status.includes('10-6') ? 'selected' : ''}>10-6: Varattuna</option>
+                    <option ${u.status.includes('10-76') ? 'selected' : ''}>10-76: Matkalla</option>
+                    <option ${u.status.includes('10-97') ? 'selected' : ''}>10-97: Kohteessa</option>
+                    <option ${u.status.includes('HÄLYTYS') ? 'selected' : ''}>HÄLYTYS: Lisäavun tarve</option>
+                    <option ${u.status.includes('10-7') ? 'selected' : ''}>10-7: Poissa käytöstä</option>
+                </select>
+            </div>
+            <div class="item-meta">Henkilöstö: ${u.personnel} | Ajoneuvo: ${u.vehicle}</div>
+        </div>
+    `).join('') : '<p class="item-meta">Ei yksiköitä työvuorossa.</p>';
+}
+
+document.getElementById('unit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await fetch('/api/units', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            callsign: document.getElementById('unit-callsign').value,
+            department: document.getElementById('unit-dept').value,
+            personnel: document.getElementById('unit-personnel').value,
+            vehicle: document.getElementById('unit-vehicle').value
+        })
+    });
+    e.target.reset(); loadUnits();
+});
+
+async function changeUnitStatus(id, status) {
+await fetch(/api/units/${id}/status, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+}
+// 2. Poliisin MDT
+async function searchCitizens() {
+const q = document.getElementById('citizen-search').value;
+const res = await fetch(/api/mdt/citizens?q=${encodeURIComponent(q)});
+const data = await res.json();
+document.getElementById('citizens-results').innerHTML = data.map(c => <div class="item-card ${c.wanted ? 'urgent' : ''}"> <div class="item-header"> <span>${c.full_name} (${c.dob}) ${c.wanted ? '🚨 ETSINTÄKUULUTETTU' : ''}</span> <div> <button class="btn btn-danger" style="padding:2px 6px;" onclick="toggleWanted(${c.id})">Haku</button> <button class="btn btn-primary" style="padding:2px 6px;" onclick="revokeLicense(${c.id})">Kortti</button> </div> </div> <div class="item-meta">Ajokortti: ${c.license_status} | Roblox: ${c.roblox_user || '-'} | Osoite: ${c.address}</div> </div>).join('');
+}
+async function toggleWanted(id) { await fetch(/api/mdt/citizens/${id}/toggle_wanted, { method: 'POST' }); searchCitizens(); }
+async function revokeLicense(id) { await fetch(/api/mdt/citizens/${id}/revoke_license, { method: 'POST' }); searchCitizens(); }
+document.getElementById('citizen-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/mdt/citizens', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+full_name: document.getElementById('cit-name').value,
+dob: document.getElementById('cit-dob').value,
+roblox_user: document.getElementById('cit-roblox').value,
+address: document.getElementById('cit-address').value
+})
+});
+e.target.reset(); searchCitizens();
+});
+async function searchVehicles() {
+const q = document.getElementById('vehicle-search').value;
+const res = await fetch(/api/mdt/vehicles?q=${encodeURIComponent(q)});
+const data = await res.json();
+document.getElementById('vehicles-results').innerHTML = data.map(v => <div class="item-card"> <div class="item-header"><span>${v.plate} – ${v.model} (${v.color})</span><span>Omistaja: ${v.owner_name}</span></div> <div class="item-meta">Katsastettu: ${v.inspected ? 'Kyllä' : 'Ei'} | Vakuutettu: ${v.insured ? 'Kyllä' : 'Ei'}</div> </div>).join('');
+}
+document.getElementById('vehicle-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/mdt/vehicles', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+plate: document.getElementById('veh-plate').value,
+model: document.getElementById('veh-model').value,
+color: document.getElementById('veh-color').value,
+owner_name: document.getElementById('veh-owner').value
+})
+});
+e.target.reset(); searchVehicles();
+});
+async function loadFines() {
+const res = await fetch('/api/mdt/fines');
+const data = await res.json();
+document.getElementById('fines-list').innerHTML = data.map(f => <div class="item-card"> <div class="item-header"><span>[${f.fine_number}] ${f.citizen_name} – ${f.amount} €</span><span>${f.issued_by}</span></div> <div class="item-meta">Syy: ${f.reason}</div> </div>).join('');
+}
+document.getElementById('fine-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/mdt/fines', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+citizen_name: document.getElementById('fine-citizen').value,
+reason: document.getElementById('fine-reason').value,
+amount: document.getElementById('fine-amount').value
+})
+});
+e.target.reset(); loadFines();
+});
+async function loadInvestigations() {
+const res = await fetch('/api/mdt/investigations');
+const data = await res.json();
+document.getElementById('inv-list').innerHTML = data.map(i => <div class="item-card"> <div class="item-header"><span>[${i.case_number}] ${i.title}</span><span>${i.status}</span></div> <div class="item-meta">Epäilty: ${i.suspect} | Tutkija: ${i.lead_officer}</div> <p style="font-size:13px; margin-top:4px;">${i.details}</p> </div>).join('');
+}
+document.getElementById('inv-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/mdt/investigations', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+title: document.getElementById('inv-title').value,
+suspect: document.getElementById('inv-suspect').value,
+details: document.getElementById('inv-details').value
+})
+});
+e.target.reset(); loadInvestigations();
+});
+// 3. Raportit & Kalusto
+async function loadReports() {
+const res = await fetch('/api/reports');
+const data = await res.json();
+document.getElementById('reports-list').innerHTML = data.map(r => <div class="item-card"> <div class="item-header"><span>[${r.report_number}] ${r.report_type} (${r.department})</span><span>${r.created_at}</span></div> <div class="item-meta">Osallinen: ${r.subject_name} | Paikka: ${r.location} | Laatija: ${r.author}</div> <p style="font-size:13px; margin-top:4px;">${r.content}</p> </div>).join('');
+}
+document.getElementById('report-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/reports', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+department: document.getElementById('rep-dept').value,
+report_type: document.getElementById('rep-type').value,
+subject_name: document.getElementById('rep-subject').value,
+location: document.getElementById('rep-location').value,
+content: document.getElementById('rep-content').value
+})
+});
+e.target.reset(); loadReports();
+});
+async function loadEquipment() {
+const res = await fetch('/api/equipment');
+const data = await res.json();
+document.getElementById('equip-list').innerHTML = data.map(eq => <div class="item-card"> <div class="item-header"><span>${eq.name} (${eq.category})</span><span>${eq.condition}</span></div> <div class="item-meta">Sijoitusyksikkö: ${eq.assigned_unit}</div> </div>).join('');
+}
+document.getElementById('equip-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/equipment', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+name: document.getElementById('eq-name').value,
+category: document.getElementById('eq-cat').value,
+assigned_unit: document.getElementById('eq-unit').value
+})
+});
+e.target.reset(); loadEquipment();
+});
+// 4. Kartta & Kamerat
+function pickMapCoordinates(event) {
+const rect = event.currentTarget.getBoundingClientRect();
+document.getElementById('cam-x').value = (((event.clientX - rect.left) / rect.width) * 100).toFixed(1);
+document.getElementById('cam-y').value = (((event.clientY - rect.top) / rect.height) * 100).toFixed(1);
+}
+async function loadCameras() {
+const res = await fetch('/api/cameras');
+const cams = await res.json();
+document.getElementById('map-pins').innerHTML = cams.map(c => <div class="cam-pin" style="left:${c.pos_x}%; top:${c.pos_y}%;" title="${c.name}">📷 ${c.cam_code}</div>).join('');
+document.getElementById('sighting-cam-id').innerHTML = cams.map(c => <option value="${c.id}">${c.cam_code} – ${c.name}</option>).join('');
+}
+document.getElementById('camera-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const res = await fetch('/api/cameras', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+name: document.getElementById('cam-name').value,
+area: document.getElementById('cam-area').value,
+pos_x: document.getElementById('cam-x').value,
+pos_y: document.getElementById('cam-y').value
+})
+});
+if (!res.ok) alert("Vain Omistaja ja Ylläpito voivat lisätä kameroita.");
+e.target.reset(); loadCameras();
+});
+async function loadSightings() {
+const res = await fetch('/api/cameras/sightings');
+const data = await res.json();
+document.getElementById('sightings-list').innerHTML = data.map(s => <div class="item-card"> <div class="item-header"><span>📷 ${s.camera_name}</span><span>${s.timestamp}</span></div> <div class="item-meta">Henkilö: ${s.person_name || '-'} | Kilpi: ${s.vehicle_plate || '-'}</div> <p style="font-size:13px;">${s.notes}</p> </div>).join('');
+}
+document.getElementById('sighting-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/cameras/sightings', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+camera_id: document.getElementById('sighting-cam-id').value,
+person_name: document.getElementById('sighting-person').value,
+vehicle_plate: document.getElementById('sighting-plate').value,
+notes: document.getElementById('sighting-notes').value
+})
+});
+e.target.reset(); loadSightings();
+});
+// 5. Viranomaisradio
+async function loadRadio() {
+const res = await fetch('/api/radio');
+const data = await res.json();
+document.getElementById('radio-list').innerHTML = data.map(m => <div class="item-card"> <div class="item-header"><span>[${m.channel}] ${m.sender}</span><span>${m.timestamp}</span></div> <p style="font-size:13px;">${m.message}</p> </div>).join('');
+}
+document.getElementById('radio-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/radio', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+channel: document.getElementById('radio-channel').value,
+message: document.getElementById('radio-msg').value
+})
+});
+document.getElementById('radio-msg').value = ''; loadRadio();
+});
+// 6. Yritykset & Hinaus
+async function loadEconomy() {
+const cRes = await fetch('/api/companies');
+const comps = await cRes.json();
+document.getElementById('companies-list').innerHTML = comps.map(c => <div class="item-card"><div class="item-header"><span>${c.name} (${c.industry})</span><span>${c.balance} €</span></div><div class="item-meta">Omistaja: ${c.owner}</div></div>).join('');
+const tRes = await fetch('/api/tow');
+const tows = await tRes.json();
+document.getElementById('tow-list').innerHTML = tows.map(t => <div class="item-card"><div class="item-header"><span>${t.plate} – ${t.pickup} ➔ ${t.destination}</span><span>${t.status}</span></div></div>).join('');
+}
+document.getElementById('company-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: document.getElementById('comp-name').value, industry: document.getElementById('comp-ind').value }) });
+e.target.reset(); loadEconomy();
+});
+document.getElementById('tow-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/tow', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plate: document.getElementById('tow-plate').value, pickup: document.getElementById('tow-pickup').value, destination: document.getElementById('tow-dest').value }) });
+e.target.reset(); loadEconomy();
+});
+// 7. Oikeusjärjestelmä
+async function loadCourt() {
+const res = await fetch('/api/court');
+const data = await res.json();
+document.getElementById('court-list').innerHTML = data.map(c => <div class="item-card"><div class="item-header"><span>[${c.docket_number}] ${c.defendant}</span><span>${c.verdict} (${c.sentence})</span></div><div class="item-meta">Syytteet: ${c.charges}</div></div>).join('');
+}
+document.getElementById('court-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/court', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ defendant: document.getElementById('court-def').value, charges: document.getElementById('court-charges').value, verdict: document.getElementById('court-verdict').value, sentence: document.getElementById('court-sentence').value }) });
+e.target.reset(); loadCourt();
+});
+// 8. HR
+async function loadHR() {
+const res = await fetch('/api/hr/applications');
+const data = await res.json();
+document.getElementById('hr-list').innerHTML = data.map(a => <div class="item-card"> <div class="item-header"><span>${a.app_type} (${a.department}) – ${a.applicant}</span><span>${a.status}</span></div> <p style="font-size:13px;">${a.details}</p> <div class="mt-10"> <button class="btn btn-success" style="padding:2px 8px;" onclick="decideHR(${a.id}, 'approve')">Hyväksy</button> <button class="btn btn-danger" style="padding:2px 8px;" onclick="decideHR(${a.id}, 'reject')">Hylkää</button> </div> </div>).join('');
+}
+async function decideHR(id, decision) { await fetch(/api/hr/applications/${id}/${decision}, { method: 'POST' }); loadHR(); }
+document.getElementById('hr-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+await fetch('/api/hr/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_type: document.getElementById('hr-type').value, department: document.getElementById('hr-dept').value, details: document.getElementById('hr-details').value }) });
+e.target.reset(); loadHR();
+});
+// 9. Ylläpito & ER:LC API
+async function checkErlcApi() {
+const box = document.getElementById('erlc-api-result');
+box.innerText = "Yhdistetään ER:LC-palvelimelle...";
+const res = await fetch('/api/integrations/erlc/status');
+const data = await res.json();
+box.innerHTML = data.connected ? <strong style="color:#2a9d8f;">Yhteys muodostettu!</strong><pre style="font-size:12px;">${JSON.stringify(data.server_data, null, 2)}</pre> : <strong style="color:#e63946;">Ei yhteyttä:</strong> ${data.message};
+}
+async function loadAdmin() {
+const uRes = await fetch('/api/admin/users');
+const users = await uRes.json();
+document.getElementById('admin-users-list').innerHTML = users.map(u => <div class="item-card"> <div class="item-header"><span>${u.username}</span><span>${u.department} | ${u.role}</span></div> <select onchange="updateUserRole(${u.id}, this.value)" style="margin-top:5px;"> <option value="">Vaihda rooli...</option> <option value="Omistaja">Omistaja</option> <option value="Ylläpito">Ylläpito</option> <option value="Poliisin johto">Poliisin johto</option> <option value="Poliisi">Poliisi</option> <option value="Pelastaja">Pelastaja</option> <option value="Ensihoitaja">Ensihoitaja</option> <option value="Hätäkeskuspäivystäjä">Hätäkeskuspäivystäjä</option> <option value="Siviili">Siviili</option> </select> </div>).join('');
+const lRes = await fetch('/api/admin/logs');
+const logs = await lRes.json();
+document.getElementById('audit-logs-list').innerHTML = logs.map(l => <div class="item-card" style="padding:6px;"><div class="item-meta"><strong>${l.username}</strong> – ${l.timestamp}</div><div style="font-size:12px;">${l.action}</div></div>).join('');
+}
+async function updateUserRole(userId, role) {
+if (!role) return;
+await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, role: role }) });
+loadAdmin();
+}
+// Käynnistetään kaikki moduulit ja automaattinen reaaliaikapäivitys
+loadCalls(); loadUnits(); searchCitizens(); searchVehicles(); loadFines(); loadInvestigations();
+loadReports(); loadEquipment(); loadCameras(); loadSightings(); loadRadio(); loadEconomy();
+loadCourt(); loadHR(); loadAdmin();
+setInterval(() => {
+loadCalls();
+loadUnits();
+loadRadio();
+}, 5000);
+```
