@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tornio Keminmaa RP – CAD 2.0</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div>
+                <div class="sidebar-header">
+                    <h2>TKR CAD 2.0</h2>
+                    <span>ER:LC Viranomaisjärjestelmä</span>
+                </div>
+                <nav class="nav-menu">
+                    <button class="nav-btn active" onclick="switchTab('dispatch', this)">🚨 Hätäkeskus 112</button>
+                    <button class="nav-btn" onclick="switchTab('mdt', this)">🚓 Poliisin MDT</button>
+                    <button class="nav-btn" onclick="switchTab('ems', this)">🚒 Pelastus & Ensihoito</button>
+                    <button class="nav-btn" onclick="switchTab('map', this)">🗺️ Kartta & Kamerat</button>
+                    <button class="nav-btn" onclick="switchTab('radio', this)">📻 Viranomaisradio</button>
+                    <button class="nav-btn" onclick="switchTab('economy', this)">🏢 Yritykset & Hinaus</button>
+                    <button class="nav-btn" onclick="switchTab('court', this)">⚖️ Oikeusjärjestelmä</button>
+                    <button class="nav-btn" onclick="switchTab('hr', this)">📋 Henkilöstö & HR</button>
+                    <button class="nav-btn" onclick="switchTab('civilian', this)">👤 Siviiliportaali</button>
+                    <button class="nav-btn" onclick="switchTab('admin', this)">⚙️ Ylläpito & API</button>
+                </nav>
+            </div>
+            <div class="sidebar-footer">
+                <a href="/logout" class="btn btn-danger btn-full">Kirjaudu ulos</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-title" id="page-title">🚨 Hätäkeskus 112</div>
+                <div class="global-search-box">
+                    <input type="text" id="global-search-input" placeholder="Yhteishaku (henkilö, kilpi, raportti)..." onkeyup="runGlobalSearch()">
+                    <div id="global-search-results" class="search-dropdown"></div>
+                </div>
+                <div class="user-info">
+                    <span class="role-badge">{{ user.department }} | {{ user.role }}</span>
+                    <strong>{{ user.username }}</strong>
+                </div>
+            </header>
+
+            <!-- 1. HÄTÄKESKUS 112 -->
+            <section id="tab-dispatch" class="tab-section active">
+                <div class="grid-2">
+                    <div class="panel">
+                        <h3>Luo uusi hätäilmoitus (112)</h3>
+                        <form id="call-form" class="form-stack">
+                            <input type="text" id="call-location" placeholder="Tapahtumapaikka (esim. Tornio Keskusta)" required>
+                            <select id="call-type">
+                                <option value="Liikenneonnettomuus">Liikenneonnettomuus</option>
+                                <option value="Liikennevalvonta">Liikennevalvonta</option>
+                                <option value="Häiriöilmoitus">Häiriöilmoitus</option>
+                                <option value="Tulipalo">Tulipalo</option>
+                                <option value="Ensihoitotehtävä">Ensihoitotehtävä</option>
+                                <option value="Ryöstö / Vakava rikos">Ryöstö / Vakava rikos</option>
+                            </select>
+                            <select id="call-priority">
+                                <option value="Kiireellinen (A)">Kiireellinen (A)</option>
+                                <option value="Normaali (B)">Normaali (B)</option>
+                                <option value="Kiireetön (C)">Kiireetön (C)</option>
+                            </select>
+                            <textarea id="call-desc" rows="2" placeholder="Tehtävän tarkempi kuvaus..." required></textarea>
+                            <button type="submit" class="btn btn-danger">Lähetä hälytys yksiköille</button>
+                        </form>
+                    </div>
+
+                    <div class="panel">
+                        <h3>Kirjaudu viranomaisyksiköksi</h3>
+                        <form id="unit-form" class="form-stack">
+                            <input type="text" id="unit-callsign" placeholder="Kutsumerkki (esim. Lappi 101)" required>
+                            <select id="unit-dept">
+                                <option value="Poliisi">Poliisi</option>
+                                <option value="Pelastuslaitos">Pelastuslaitos</option>
+                                <option value="Ensihoito">Ensihoito</option>
+                            </select>
+                            <input type="text" id="unit-personnel" value="{{ user.username }}" placeholder="Henkilöstö" required>
+                            <input type="text" id="unit-vehicle" placeholder="Ajoneuvo (esim. Skoda Octavia)" required>
+                            <button type="submit" class="btn btn-success">Aloita työvuoro (10-8)</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="grid-2 mt-20">
+                    <div class="panel">
+                        <h3>Aktiiviset hätäkeskustehtävät</h3>
+                        <div id="calls-list" class="list-container"></div>
+                    </div>
+                    <div class="panel">
+                        <h3>Viranomaisyksiköt vuorossa</h3>
+                        <div id="units-list" class="list-container"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. POLIISIN MDT -->
+            <section id="tab-mdt" class="tab-section">
+                <div class="grid-2">
+                    <div class="panel">
+                        <h3>Henkilörekisteri (MDT)</h3>
+                        <input type="text" id="citizen-search" placeholder="Hae RP-henkilön nimellä..." onkeyup="searchCitizens()">
+                        <div id="citizens-results" class="list-container mt-10"></div>
+
+                        <h3 class="mt-20">Lisää henkilökortti</h3>
+                        <form id="citizen-form" class="form-stack">
+                            <input type="text" id="cit-name" placeholder="Etu- ja sukunimi" required>
+                            <input type="text" id="cit-dob" placeholder="Syntymäaika (pp.kk.vvvv)" required>
+                            <input type="text" id="cit-roblox" placeholder="Roblox-käyttäjänimi">
+                            <input type="text" id="cit-address" placeholder="Osoite (esim. Keminmaa)">
+                            <button type="submit" class="btn btn-primary">Tallenna henkilökortti</button>
+                        </form>
+                    </div>
+
+                    <div class="panel">
+                        <h3>Ajoneuvorekisteri (MDT)</h3>
+                        <input type="text" id="vehicle-search" placeholder="Hae rekisteritunnuksella..." onkeyup="searchVehicles()">
+                        <div id="vehicles-results" class="list-container mt-10"></div>
+
+                        <h3 class="mt-20">Rekisteröi ajoneuvo</h3>
+                        <form id="vehicle-form" class="form-stack">
+                            <input type="text" id="veh-plate" placeholder="Rekisteritunnus (esim. ABC-123)" required>
+                            <input type="text" id="veh-model" placeholder="Merkki ja malli" required>
+                            <input type="text" id="veh-color" placeholder="Väri" required>
+                            <input type="text" id="veh-owner" placeholder="Omistajan RP-nimi" required>
+                            <button type="submit" class="btn btn-primary">Rekisteröi ajoneuvo</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="grid-2 mt-20">
+                    <div class="panel">
+                        <h3>Kirjoita sakko</h3>
+                        <form id="fine-form" class="form-stack">
+                            <input type="text" id="fine-citizen" placeholder="Sakotettavan RP-nimi" required>
+                            <input type="text" id="fine-reason" placeholder="Rikosnimike / Syy" required>
+                            <input type="number" id="fine-amount" placeholder="Summa (€)" required>
+                            <button type="submit" class="btn btn-danger">Kirjaa sakko</button>
+                        </form>
+                        <div id="fines-list" class="list-container mt-10"></div>
+                    </div>
+
+                    <div class="panel">
+                        <h3>Esitutkinnat</h3>
+                        <form id="inv-form" class="form-stack">
+                            <input type="text" id="inv-title" placeholder="Tapauksen otsikko" required>
+                            <input type="text" id="inv-suspect" placeholder="Epäilty" required>
+                            <textarea id="inv-details" rows="2" placeholder="Tutkinnan tiedot..." required></textarea>
+                            <button type="submit" class="btn btn-primary">Avaa esitutkinta</button>
+                        </form>
+                        <div id="inv-list" class="list-container mt-10"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. PELASTUS & ENSIHOITO -->
+            <section id="tab-ems" class="tab-section">
+                <div class="grid-2">
+                    <div class="panel">
+                        <h3>Kirjaa raportti (Ensihoito / Pelastus / Poliisi)</h3>
+                        <form id="report-form" class="form-stack">
+                            <select id="rep-dept">
+                                <option value="Ensihoito">Ensihoito</option>
+Pelastuslaitos
+Poliisi
+
+
+Ensihoitoraportti (Potilaskortti)
+Pelastustoimen raportti
+Tapahtumaraportti
+
+
+
+
+Tallenna raportti
+
+
+Pelastuslaitoksen kalustohallinta
+
+
+Pelastusajoneuvot
+Sammutuskalusto
+Ensiapuvälineet
+
+
+
+Lisää kalusto
+
+
+
+ER:LC Tilannekuvakartta & Kamerapisteet
+Klikkaa karttaa valitaksesi koordinaatit uudelle RP-kameralle.
+
+ER:LC – TORNIO / KEMINMAA SEKTORI
+
+
+Lisää RP-kamera (Ylläpito)
+
+
+
+
+
+
+
+Lisää RP-kamera
+
+Kirjaa vahvistettu RP-kamerahavainto
+
+
+
+
+
+Tallenna havainto
+
+
+
+Viranomaisradio ja sisäinen viestintä
+
+
+
+Yhteinen viranomaiskanava
+Poliisin kanava
+Pelastuslaitoksen kanava
+Ensihoidon kanava
+Hätäkeskuksen kanava
+
+
+Lähetä
+
+Yritysrekisteri
+
+
+
+Perusta yritys
+
+
+Hinauspalvelutehtävät
+
+
+
+
+Tilaa hinaus
+
+
+
+Oikeus- ja vankeinhoitojärjestelmä
+
+
+
+
+
+Kirjaa oikeustapaus
+
+
+Jätä HR-hakemus (Ylennys / Loma / Koulutus)
+
+
+Ylennyshakemus
+Lomahakemus
+Koulutushakemus
+
+
+Poliisi
+Pelastuslaitos
+Ensihoito
+
+
+Lähetä hakemus
+
+Henkilöstöhakemukset
+
+
+Siviiliportaali – Omat tiedot
+
+Käyttäjätunnus: {{ user.username }} |
+Roblox ID: {{ user.roblox_id }} |
+Pankkitilin saldo: {{ user.bank_balance }} €
+
+Voit luoda oman RP-hahmon henkilökortin, rekisteröidä ajoneuvon tai tehdä hätäilmoituksen (112) ylävalikon toiminnoista.
+ER:LC Server API
+Testaa ER:LC API -yhteys
+Yhteyttä ei ole vielä testattu.
+Järjestelmän lokit
+
+Käyttäjien roolihallinta (Vain Omistaja / Ylläpito)

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tornio Keminmaa RP – CAD 2.0 Kirjautuminen</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-body">
+    <div class="login-card">
+        <div class="badge">VIRANOMAISJÄRJESTELMÄ 2.0</div>
+        <h1>Tornio Keminmaa RP</h1>
+        <p>Kirjaudu sisään viranomais- ja siviilijärjestelmään Roblox-tunnuksillasi.</p>
+        <a href="/auth/roblox" class="btn btn-primary btn-large">Kirjaudu sisään Robloxilla</a>
+    </div>
+</body>
+</html>
