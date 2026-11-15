@@ -1,0 +1,28 @@
+{
+  "name": "fin-cad",
+  "productName": "Fin CAD",
+  "version": "2.0.0",
+  "description": "Fin CAD – Suomalainen viranomais- ja roolipelijärjestelmä",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "build": {
+    "appId": "fi.fincad.desktop",
+    "productName": "Fin CAD",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
